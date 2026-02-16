@@ -115,6 +115,28 @@
 
         <div class="divider"></div>
 
+        <div class="smallLabel">ADD CUSTOM TASK</div>
+        <div class="field">
+          <input id="newTaskName" type="text" placeholder="Task Name (e.g. Read)" />
+          <input id="newTaskDesc" type="text" placeholder="Description (e.g. 10 pages)" />
+
+          <select id="newTaskType"
+            style="background:#1a1a1a; border:1px solid #333; color:white; padding:12px; border-radius:12px; outline:none;">
+            <option value="boolean">Checkbox (Yes/No)</option>
+            <option value="range">Slider (Count)</option>
+          </select>
+
+          <div id="rangeInputs" style="display:none; gap:8px;">
+            <input id="newTaskTarget" type="number" placeholder="Target (e.g. 10)" style="flex:1" />
+            <input id="newTaskUnit" type="text" placeholder="Unit (e.g. pages)" style="flex:1" />
+          </div>
+
+          <button class="ghost" id="addTaskBtn" type="button"
+            style="background:rgba(255,255,255,0.1); margin-top:4px;">+ Add Task</button>
+        </div>
+
+        <div class="divider"></div>
+
         <div class="smallLabel">TOGGLE TASKS</div>
         <div class="toggles" id="taskToggles">
           <!-- JS injected -->

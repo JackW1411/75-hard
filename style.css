@@ -326,6 +326,35 @@ body {
   color: var(--text-muted);
 }
 
+/* Range Item Styles */
+.rangeItem {
+  display: block;
+  /* Stack vertically */
+}
+
+.rangeHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 12px;
+}
+
+.rangeValue {
+  font-weight: 700;
+  color: var(--accent);
+  font-size: 14px;
+}
+
+.slider.compact {
+  height: 6px;
+}
+
+.slider.compact::-webkit-slider-thumb {
+  width: 20px;
+  height: 20px;
+  margin-top: -7px;
+}
+
 .toggleBtn {
   background: rgba(255, 255, 255, 0.1);
   border: none;
