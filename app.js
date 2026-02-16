@@ -1,16 +1,19 @@
 /* 75 HARD Tracker - Pink Glassmorphism Edition */
 
-const STORAGE_KEY = "seventyfivehard_v4"; // Version bump
+const STORAGE_KEY = "seventyfivehard_v9"; // Version bump again
 
 const DEFAULT_TASKS = [
   { id: "runwalk", name: "Outdoor run/walk", desc: "Get outside 🌤️", type: "boolean", enabled: true, done: false },
   { id: "gym", name: "Gym / workout", desc: "Train hard 🏋️", type: "boolean", enabled: true, done: false },
   { id: "nutrition", name: "Nutrition on plan", desc: "Clean eating 🍽️", type: "boolean", enabled: true, done: false },
   { id: "no_alc", name: "No alcohol", desc: "Zero tolerance 🥤", type: "boolean", enabled: true, done: false },
-  { id: "reading", name: "Reading", desc: "10 pages 📚", type: "range", target: 10, unit: "pages", value: 0, enabled: true, done: false }
+  { id: "reading", name: "Reading", desc: "10 pages 📚", type: "range", target: 10, unit: "pages", value: 0, enabled: true, done: false },
+  { id: "jackykiss", name: "Kiss Jack's ass", desc: "Don't forget 😉", type: "boolean", enabled: true, done: false }
 ];
 
 const MESSAGES = [
+  "Happy Birthday Ash!", // First message
+  "Day 1 or One Day?",
   "NO EXCUSES.",
   "DO THE WORK.",
   "STAY HARD.",
@@ -24,7 +27,7 @@ const MESSAGES = [
 ];
 
 let state = {
-  version: 4,
+  version: 7,
   completedDays: 0,
   currentStreak: 0,
   bestStreak: 0,
@@ -136,15 +139,31 @@ function renderChecklist() {
       `;
 
       const slider = el.querySelector("input");
-      // Local paint logic for this specific slider
-      const pct = progress * 100;
-      slider.style.background = `linear-gradient(90deg, var(--accent) ${pct}%, #333 ${pct}%)`;
+      const rangeValue = el.querySelector(".rangeValue"); // Get reference to text
 
+      // Local paint logic for this specific slider
+      const updateSliderVisuals = (val) => {
+        const ratio = clamp(val / task.target, 0, 1);
+        const pct = ratio * 100;
+        slider.style.background = `linear-gradient(90deg, var(--accent) ${pct}%, #333 ${pct}%)`;
+        rangeValue.textContent = `${val} / ${task.target} ${task.unit}`; // Update text locally
+      };
+
+      // INIT visual
+      updateSliderVisuals(task.value);
+
+      // INPUT: Update visuals only (fast)
       slider.addEventListener("input", (e) => {
+        const val = Number(e.target.value);
+        updateSliderVisuals(val);
+      });
+
+      // CHANGE: Commit state and re-render app (when drag stops)
+      slider.addEventListener("change", (e) => {
         task.value = Number(e.target.value);
         task.done = task.value >= task.target;
         saveState();
-        render(); // Re-render to update rings/button
+        render(); // Full re-render to update rings/button
       });
 
     } else {
