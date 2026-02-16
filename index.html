@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>75 Hard Survival OS</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <main class="wrap">
+    <header class="top">
+      <div class="titleRow">
+        <h1 id="title">75 Hard Survival OS</h1>
+        <span class="chip" id="todayChip">Today</span>
+      </div>
+
+      <section class="hero">
+        <div class="card">
+          <div class="cardHeader">
+            <h2>Europe Countdown ✈️</h2>
+            <button class="ghost" id="editTripBtn" type="button">Edit date</button>
+          </div>
+          <div class="countdown" id="countdown">—</div>
+          <div class="sub" id="tripDateLabel">Trip date: —</div>
+        </div>
+
+        <div class="card">
+          <div class="cardHeader">
+            <h2>Progress 📈</h2>
+            <button class="ghost" id="resetTodayBtn" type="button" title="Only resets today's checkboxes">Reset today</button>
+          </div>
+
+          <div class="stats">
+            <div class="stat">
+              <div class="statLabel">Day</div>
+              <div class="statValue"><span id="dayNumber">1</span>/75</div>
+            </div>
+            <div class="stat">
+              <div class="statLabel">Streak</div>
+              <div class="statValue"><span id="streak">0</span> 🔥</div>
+            </div>
+            <div class="stat">
+              <div class="statLabel">Complete</div>
+              <div class="statValue"><span id="percent">0</span>%</div>
+            </div>
+          </div>
+
+          <div class="bar">
+            <div class="barFill" id="barFill" style="width:0%"></div>
+          </div>
+
+          <div class="sub" id="statusLine">Mark today complete to build your streak.</div>
+        </div>
+      </section>
+    </header>
+
+    <section class="grid">
+      <div class="card">
+        <div class="cardHeader">
+          <h2>Today’s Checklist ✅</h2>
+          <div class="tiny" id="dateLabel">—</div>
+        </div>
+
+        <div class="checklist" id="checklist"></div>
+
+        <div class="actions">
+          <button id="completeDayBtn" type="button">Complete Day ✅</button>
+          <button class="ghost" id="undoCompleteBtn" type="button">Undo completion</button>
+        </div>
+
+        <p class="hint">
+          Tip: This saves automatically on this device (LocalStorage). No account needed 🔒
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="cardHeader">
+          <h2>Unlocked Messages 🎁</h2>
+          <div class="tiny">Unlock every 7-day streak</div>
+        </div>
+
+        <div class="unlocks" id="unlocks"></div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <span class="tiny">Built with ❤️ by you</span>
+    </footer>
+  </main>
+
+  <!-- Trip date modal -->
+  <dialog id="tripDialog" class="dialog">
+    <form method="dialog" class="dialogInner">
+      <h3>Set Europe date ✈️</h3>
+      <p class="tiny">Pick her first flight / departure date.</p>
+      <label class="field">
+        <span>Date</span>
+        <input id="tripDateInput" type="date" required />
+      </label>
+      <div class="dialogActions">
+        <button class="ghost" value="cancel" type="submit">Cancel</button>
+        <button id="saveTripBtn" value="default" type="submit">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Birthday easter egg modal -->
+  <dialog id="eggDialog" class="dialog">
+    <form method="dialog" class="dialogInner egg">
+      <h3>🎂 Happy Birthday</h3>
+      <p>
+        You’re genuinely built different.<br/>
+        75 Hard + gym + Europe… unreal energy.<br/><br/>
+        I made this so you never forget how far you’ve come 💪✨
+      </p>
+      <div class="dialogActions">
+        <button type="submit">Close</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="./app.js"></script>
+</body>
+</html>
