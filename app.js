@@ -1,424 +1,401 @@
-// 75 Hard Survival OS
-// Stores data locally (LocalStorage) per device.
+/* 75 HARD Tracker (phone-first)
+   - localStorage persistence
+   - daily encouragement message (seeded by day number)
+   - water slider (goal adjustable)
+   - complete-day button unlocks when all enabled tasks + water goal met
+   - button hue shifts green -> red as progress increases
+*/
 
-const STORAGE_KEY = "survivalOS_v1";
+const STORAGE_KEY = "seventyfivehard_v1";
 
-const TASKS = [
-  { id: "workout1", name: "Workout 1", note: "Any workout" },
-  { id: "workout2", name: "Workout 2", note: "Second workout (can be walk)" },
-  { id: "water", name: "Water", note: "3.8L / 1 gallon" },
-  { id: "reading", name: "Reading", note: "10 pages (non-fiction)" },
-  { id: "diet", name: "Diet", note: "No cheat meals / alcohol" },
-  { id: "photo", name: "Progress photo", note: "Daily pic" },
+const DEFAULT_TASKS = [
+  { id: "runwalk",  name: "Outdoor run/walk", desc: "Get outside for a session 🌤️", enabled: true, done: false },
+  { id: "gym",      name: "Gym / workout",    desc: "Lift / class / training 🏋️", enabled: true, done: false },
+  { id: "nutrition",name: "Nutrition on plan",desc: "No ‘meh’ snacks today 🍽️", enabled: true, done: false },
+  { id: "no_alc",   name: "No alcohol",       desc: "Keep it clean 🥤", enabled: true, done: false },
+  { id: "photo",    name: "Progress photo",   desc: "1 quick pic 📸", enabled: true, done: false },
+  // optional (off by default):
+  { id: "mobility", name: "Mobility / stretch", desc: "10–15 min loosening up 🧘", enabled: false, done: false },
+  // reading exists but default disabled (since she’s skipping)
+  { id: "reading",  name: "Read 10 pages",    desc: "Optional 📚", enabled: false, done: false }
 ];
 
-const UNLOCKS = [
-  { day: 7,  title: "Week 1",  msg: "You did the hardest part: starting. Keep it boring. Keep it daily. 🧱" },
-  { day: 14, title: "Week 2",  msg: "Discipline > motivation. You’re proving it with receipts. 📸🔥" },
-  { day: 21, title: "Week 3",  msg: "You’re becoming the person who just… does it. That’s the cheat code. 🎮" },
-  { day: 28, title: "Week 4",  msg: "A month of consistency is a flex. Most people tap out here. Not you. 💪" },
-  { day: 35, title: "Week 5",  msg: "Midpoint energy: calm, steady, inevitable. 🚂" },
-  { day: 42, title: "Week 6",  msg: "If today feels heavy, good. You’re getting stronger under load. 🏋️" },
-  { day: 49, title: "Week 7",  msg: "You’re stacking wins on purpose. That’s rare. ✨" },
-  { day: 56, title: "Week 8",  msg: "This is identity now. Strong, consistent, focused. 🧠" },
-  { day: 63, title: "Week 9",  msg: "You’re in the final stretch. Keep it simple. Keep it daily. ✅" },
-  { day: 70, title: "Week 10", msg: "Almost there. Don’t negotiate with your goals. 🗿" },
-  { day: 75, title: "Day 75",  msg: "Hard things build strong girls. Europe unlocked. ✈️🏆" },
+const MESSAGES = [
+  "Tiny steps. Brutal consistency. ✅",
+  "Do it even if it’s boring. That’s the point. 🧠",
+  "Win the next 30 minutes. ⏱️",
+  "No negotiating today. Just execute. 🎯",
+  "You don’t need motivation — you need a system. 🔁",
+  "Future-you is watching. Make it easy to be proud. ✨",
+  "One clean day compounds. 📈",
+  "Be the person who finishes. 🏁",
+  "Discipline is a flex. 💪",
+  "Keep it simple: do the list. ✅",
+  "You’re building trust with yourself. 🤝",
+  "Hard is fine. Quitting is expensive. 💸"
 ];
 
-const els = {
-  todayChip: document.getElementById("todayChip"),
-  dateLabel: document.getElementById("dateLabel"),
-  checklist: document.getElementById("checklist"),
-  completeDayBtn: document.getElementById("completeDayBtn"),
-  undoCompleteBtn: document.getElementById("undoCompleteBtn"),
-  resetTodayBtn: document.getElementById("resetTodayBtn"),
+function loadState() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) {
+    return {
+      version: 1,
+      completedDays: 0,
+      currentStreak: 0,
+      bestStreak: 0,
+      waterGoalL: 2.0,
+      waterL: 0.0,
+      tasks: structuredClone(DEFAULT_TASKS),
+      history: Array.from({ length: 75 }, () => false),
+      lastCompletedDate: null // YYYY-MM-DD
+    };
+  }
+  try {
+    const state = JSON.parse(raw);
 
-  dayNumber: document.getElementById("dayNumber"),
-  streak: document.getElementById("streak"),
-  percent: document.getElementById("percent"),
-  barFill: document.getElementById("barFill"),
-  statusLine: document.getElementById("statusLine"),
+    // migrate / repair
+    if (!Array.isArray(state.tasks)) state.tasks = structuredClone(DEFAULT_TASKS);
+    if (!Array.isArray(state.history) || state.history.length !== 75) {
+      state.history = Array.from({ length: 75 }, (_, i) => !!(state.history && state.history[i]));
+    }
+    if (typeof state.waterGoalL !== "number") state.waterGoalL = 2.0;
+    if (typeof state.waterL !== "number") state.waterL = 0.0;
+    if (typeof state.completedDays !== "number") state.completedDays = 0;
+    if (typeof state.currentStreak !== "number") state.currentStreak = 0;
+    if (typeof state.bestStreak !== "number") state.bestStreak = 0;
 
-  unlocks: document.getElementById("unlocks"),
+    // ensure all default tasks exist (in case you add more later)
+    const byId = new Map(state.tasks.map(t => [t.id, t]));
+    for (const def of DEFAULT_TASKS) {
+      if (!byId.has(def.id)) state.tasks.push({ ...def });
+    }
 
-  countdown: document.getElementById("countdown"),
-  tripDateLabel: document.getElementById("tripDateLabel"),
-  editTripBtn: document.getElementById("editTripBtn"),
-  tripDialog: document.getElementById("tripDialog"),
-  tripDateInput: document.getElementById("tripDateInput"),
+    return state;
+  } catch {
+    localStorage.removeItem(STORAGE_KEY);
+    return loadState();
+  }
+}
 
-  eggDialog: document.getElementById("eggDialog"),
-  title: document.getElementById("title"),
-};
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
 
-function isoDate(d = new Date()) {
+function clamp(n, min, max) {
+  return Math.max(min, Math.min(max, n));
+}
+
+function todayISO() {
+  const d = new Date();
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
 }
 
-function prettyDate(d = new Date()) {
-  return d.toLocaleDateString(undefined, { weekday:"long", year:"numeric", month:"short", day:"numeric" });
+// seeded message by day number (stable)
+function seededMessage(dayNumber) {
+  const idx = (dayNumber * 9301 + 49297) % 233280; // simple LCG
+  const pick = idx % MESSAGES.length;
+  return MESSAGES[pick];
 }
 
-function loadState() {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) {
-    return {
-      startDate: isoDate(new Date()), // when she first uses it
-      completedDays: [],              // ["YYYY-MM-DD", ...]
-      dailyChecks: {},                // { "YYYY-MM-DD": {taskId: true/false} }
-      tripDate: null,                 // "YYYY-MM-DD"
-      lastSeenDate: null,
-      streak: 0,
-      bestStreak: 0,
-    };
-  }
-  try {
-    const parsed = JSON.parse(raw);
-    return { ...loadStateDefaults(), ...parsed };
-  } catch {
-    return loadStateDefaults();
-  }
+function progressHue(completedDays) {
+  // 0 -> green (120), 75 -> red (0)
+  const t = clamp(completedDays / 75, 0, 1);
+  return Math.round(120 * (1 - t));
 }
 
-function loadStateDefaults() {
-  return {
-    startDate: isoDate(new Date()),
-    completedDays: [],
-    dailyChecks: {},
-    tripDate: null,
-    lastSeenDate: null,
-    streak: 0,
-    bestStreak: 0,
-  };
+function enabledTasks() {
+  return state.tasks.filter(t => t.enabled);
 }
 
-function saveState(state) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+function isDayCompleteReady() {
+  const allTasksDone = enabledTasks().every(t => t.done);
+  const waterOk = state.waterL >= state.waterGoalL - 1e-9;
+  return allTasksDone && waterOk && state.completedDays < 75;
 }
 
-function getOrInitTodayChecks(state, dateStr) {
-  if (!state.dailyChecks[dateStr]) {
-    state.dailyChecks[dateStr] = {};
-    for (const t of TASKS) state.dailyChecks[dateStr][t.id] = false;
-  } else {
-    // ensure new tasks get added if list changes
-    for (const t of TASKS) {
-      if (typeof state.dailyChecks[dateStr][t.id] !== "boolean") {
-        state.dailyChecks[dateStr][t.id] = false;
-      }
-    }
-  }
-  return state.dailyChecks[dateStr];
-}
+function renderChecklist() {
+  const list = document.getElementById("checklist");
+  list.innerHTML = "";
 
-function allChecked(checks) {
-  return TASKS.every(t => checks[t.id] === true);
-}
+  for (const task of state.tasks) {
+    if (!task.enabled) continue;
 
-function computeDayNumber(state, todayStr) {
-  // Day number based on startDate, clamped 1..75
-  const start = new Date(state.startDate + "T00:00:00");
-  const today = new Date(todayStr + "T00:00:00");
-  const diffDays = Math.floor((today - start) / (1000*60*60*24));
-  return Math.min(75, Math.max(1, diffDays + 1));
-}
-
-function computePercent(state, todayStr) {
-  // percent based on completedDays count (unique), clamped
-  const unique = new Set(state.completedDays);
-  const done = Math.min(75, unique.size);
-  const pct = Math.round((done / 75) * 100);
-  return { done, pct };
-}
-
-function renderChecklist(state, todayStr) {
-  const checks = getOrInitTodayChecks(state, todayStr);
-  els.checklist.innerHTML = "";
-
-  TASKS.forEach(task => {
     const row = document.createElement("div");
     row.className = "item";
 
     const left = document.createElement("div");
     left.className = "itemLeft";
 
-    const info = document.createElement("div");
-    const name = document.createElement("div");
-    name.className = "itemName";
-    name.textContent = task.name;
+    const chk = document.createElement("div");
+    chk.className = "chk" + (task.done ? " on" : "");
+    chk.setAttribute("aria-hidden", "true");
 
-    const note = document.createElement("div");
-    note.className = "itemNote";
-    note.textContent = task.note;
+    const text = document.createElement("div");
+    text.style.minWidth = "0";
 
-    info.appendChild(name);
-    info.appendChild(note);
-    left.appendChild(info);
+    const title = document.createElement("div");
+    title.className = "itemTitle";
+    title.textContent = task.name;
 
-    const toggle = document.createElement("div");
-    toggle.className = "toggle";
+    const sub = document.createElement("div");
+    sub.className = "itemSub";
+    sub.textContent = task.desc;
 
-    const cb = document.createElement("input");
-    cb.type = "checkbox";
-    cb.checked = !!checks[task.id];
-    cb.addEventListener("change", () => {
-      checks[task.id] = cb.checked;
-      state.dailyChecks[todayStr] = checks;
-      saveState(state);
-      renderTop(state, todayStr);
-      renderUnlocks(state);
+    text.appendChild(title);
+    text.appendChild(sub);
+
+    left.appendChild(chk);
+    left.appendChild(text);
+
+    const btn = document.createElement("button");
+    btn.className = "toggleBtn" + (task.done ? " on" : "");
+    btn.type = "button";
+    btn.textContent = task.done ? "Done" : "Mark";
+    btn.addEventListener("click", () => {
+      task.done = !task.done;
+      saveState();
+      render();
     });
 
-    toggle.appendChild(cb);
-
     row.appendChild(left);
-    row.appendChild(toggle);
-
-    els.checklist.appendChild(row);
-  });
-}
-
-function renderTop(state, todayStr) {
-  els.dateLabel.textContent = prettyDate(new Date(todayStr + "T00:00:00"));
-  els.todayChip.textContent = `Today: ${todayStr}`;
-
-  const dayNum = computeDayNumber(state, todayStr);
-  els.dayNumber.textContent = String(dayNum);
-
-  const { done, pct } = computePercent(state, todayStr);
-  els.percent.textContent = String(pct);
-  els.barFill.style.width = `${pct}%`;
-
-  els.streak.textContent = String(state.streak);
-
-  const checks = getOrInitTodayChecks(state, todayStr);
-  const doneToday = state.completedDays.includes(todayStr);
-  const ready = allChecked(checks);
-
-  if (doneToday) {
-    els.statusLine.textContent = "Today is completed ✅ Streak protected 🔥";
-  } else if (ready) {
-    els.statusLine.textContent = "All tasks checked. Hit “Complete Day” ✅";
-  } else {
-    els.statusLine.textContent = `Complete today’s tasks to keep the streak alive. (${done}/75 done)`;
+    row.appendChild(btn);
+    list.appendChild(row);
   }
-
-  // Enable/disable buttons
-  els.completeDayBtn.disabled = doneToday || !ready;
-  els.undoCompleteBtn.disabled = !doneToday;
 }
 
-function updateStreakOnCompletion(state, todayStr) {
-  // streak increments only if yesterday was completed or this is first completion day
-  const today = new Date(todayStr + "T00:00:00");
-  const yesterday = new Date(today);
-  yesterday.setDate(today.getDate() - 1);
-  const yStr = isoDate(yesterday);
+function renderHistory() {
+  document.getElementById("bestStreak").textContent = String(state.bestStreak);
+  document.getElementById("currentStreak").textContent = String(state.currentStreak);
 
-  const hadYesterday = state.completedDays.includes(yStr);
-
-  if (state.completedDays.length === 0) {
-    state.streak = 1;
-  } else if (hadYesterday) {
-    state.streak += 1;
-  } else {
-    state.streak = 1;
+  const grid = document.getElementById("historyGrid");
+  grid.innerHTML = "";
+  for (let i = 0; i < 75; i++) {
+    const dot = document.createElement("div");
+    dot.className = "dayDot" + (state.history[i] ? " done" : "");
+    dot.title = `Day ${i + 1}`;
+    grid.appendChild(dot);
   }
-  state.bestStreak = Math.max(state.bestStreak || 0, state.streak);
 }
 
-function renderUnlocks(state) {
-  els.unlocks.innerHTML = "";
-  const streak = state.streak || 0;
+function renderWater() {
+  const slider = document.getElementById("waterSlider");
+  slider.max = String(state.waterGoalL);
+  slider.step = "0.1";
+  slider.value = String(clamp(state.waterL, 0, state.waterGoalL));
 
-  UNLOCKS.forEach(u => {
-    const box = document.createElement("div");
-    const unlocked = streak >= u.day;
-    box.className = "unlock" + (unlocked ? "" : " locked");
-
-    const titleRow = document.createElement("div");
-    titleRow.className = "unlockTitle";
-
-    const t = document.createElement("div");
-    t.textContent = `${u.title} ${unlocked ? "✅" : "🔒"}`;
-
-    const badge = document.createElement("div");
-    badge.className = "badge";
-    badge.textContent = `Streak ${u.day}`;
-
-    titleRow.appendChild(t);
-    titleRow.appendChild(badge);
-
-    const msg = document.createElement("div");
-    msg.className = "sub";
-    msg.textContent = unlocked ? u.msg : "Keep going. This unlocks automatically.";
-
-    box.appendChild(titleRow);
-    box.appendChild(msg);
-
-    els.unlocks.appendChild(box);
-  });
+  document.getElementById("waterGoalLabel").textContent = state.waterGoalL.toFixed(1);
+  document.getElementById("waterGoalTick").textContent = state.waterGoalL.toFixed(1);
+  document.getElementById("waterValueLabel").textContent = Number(slider.value).toFixed(1);
 }
 
-function renderCountdown(state) {
-  if (!state.tripDate) {
-    els.countdown.textContent = "Set your date →";
-    els.tripDateLabel.textContent = "Trip date: —";
+function renderHeader() {
+  const dayNum = clamp(state.completedDays + 1, 1, 75);
+  document.getElementById("dayNumber").textContent = String(dayNum);
+  document.getElementById("completeDayNumber").textContent = String(dayNum);
+
+  document.getElementById("completedDays").textContent = String(state.completedDays);
+
+  const fill = document.getElementById("progressFill");
+  const pct = clamp((state.completedDays / 75) * 100, 0, 100);
+  fill.style.width = `${pct}%`;
+
+  const pb = document.querySelector(".progressBar");
+  pb.setAttribute("aria-valuenow", String(state.completedDays));
+
+  const hue = progressHue(state.completedDays);
+  document.documentElement.style.setProperty("--accentHue", String(hue));
+}
+
+function renderMessage() {
+  const dayNum = clamp(state.completedDays + 1, 1, 75);
+  document.getElementById("dailyMessage").textContent = seededMessage(dayNum);
+}
+
+function renderCompleteButton() {
+  const btn = document.getElementById("completeDayBtn");
+  const hint = document.getElementById("completeHint");
+
+  const ready = isDayCompleteReady();
+  btn.disabled = !ready;
+
+  if (state.completedDays >= 75) {
+    btn.disabled = true;
+    btn.textContent = "Finished — 75/75 🏁";
+    hint.textContent = "You actually did it. Respect.";
     return;
   }
-  const now = new Date();
-  const target = new Date(state.tripDate + "T00:00:00");
-  const diffMs = target - now;
 
-  const sign = diffMs >= 0 ? 1 : -1;
-  const ms = Math.abs(diffMs);
+  btn.innerHTML = `Complete Day <span id="completeDayNumber">${clamp(state.completedDays + 1, 1, 75)}</span>`;
 
-  const days = Math.floor(ms / (1000*60*60*24));
-  const hours = Math.floor((ms / (1000*60*60)) % 24);
-  const mins = Math.floor((ms / (1000*60)) % 60);
-
-  const label = sign >= 0
-    ? `${days}d ${hours}h ${mins}m`
-    : `Departed ${days}d ${hours}h ${mins}m ago`;
-
-  els.countdown.textContent = label;
-  els.tripDateLabel.textContent = `Trip date: ${state.tripDate}`;
-}
-
-function openTripDialog(state) {
-  els.tripDateInput.value = state.tripDate || "";
-  els.tripDialog.showModal();
-}
-
-function setupTripDialog(state) {
-  els.editTripBtn.addEventListener("click", () => openTripDialog(state));
-  els.tripDialog.addEventListener("close", () => {
-    // If user clicked save, dialog returns normally; read input and store if valid.
-    const val = els.tripDateInput.value;
-    if (val) {
-      state.tripDate = val;
-      saveState(state);
-      renderCountdown(state);
-    }
-  });
-}
-
-function resetToday(state, todayStr) {
-  state.dailyChecks[todayStr] = {};
-  for (const t of TASKS) state.dailyChecks[todayStr][t.id] = false;
-
-  // Note: does not touch completedDays/streak
-  saveState(state);
-}
-
-function completeToday(state, todayStr) {
-  const checks = getOrInitTodayChecks(state, todayStr);
-  if (!allChecked(checks)) return;
-  if (state.completedDays.includes(todayStr)) return;
-
-  state.completedDays.push(todayStr);
-  updateStreakOnCompletion(state, todayStr);
-  saveState(state);
-}
-
-function undoComplete(state, todayStr) {
-  state.completedDays = state.completedDays.filter(d => d !== todayStr);
-
-  // Recompute streak by walking backwards from today until a gap
-  // (simple + reliable)
-  const set = new Set(state.completedDays);
-  let streak = 0;
-  let cursor = new Date(todayStr + "T00:00:00");
-
-  while (set.has(isoDate(cursor))) {
-    streak += 1;
-    cursor.setDate(cursor.getDate() - 1);
+  if (ready) {
+    hint.textContent = "Unlocked — send it ✅";
+  } else {
+    // show what's missing
+    const missing = [];
+    if (!enabledTasks().every(t => t.done)) missing.push("checklist");
+    if (state.waterL < state.waterGoalL - 1e-9) missing.push("water");
+    hint.textContent = `Finish ${missing.join(" + ")} to unlock 👇`;
   }
-  state.streak = streak;
-  saveState(state);
 }
 
-// 🎂 Easter egg
-// 1) Konami code: ↑↑↓↓←→←→BA
-// 2) Click the title 7 times quickly
-const KONAMI = ["ArrowUp","ArrowUp","ArrowDown","ArrowDown","ArrowLeft","ArrowRight","ArrowLeft","ArrowRight","b","a"];
-let konamiPos = 0;
+function renderSettingsToggles() {
+  const wrap = document.getElementById("taskToggles");
+  wrap.innerHTML = "";
 
-function showEgg() {
-  els.eggDialog.showModal();
+  for (const task of state.tasks) {
+    const row = document.createElement("div");
+    row.className = "toggleRow";
+
+    const left = document.createElement("div");
+    const name = document.createElement("div");
+    name.className = "name";
+    name.textContent = task.name;
+
+    const desc = document.createElement("div");
+    desc.className = "desc";
+    desc.textContent = task.desc;
+
+    left.appendChild(name);
+    left.appendChild(desc);
+
+    const right = document.createElement("div");
+    right.className = "right";
+
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "toggleBtn" + (task.enabled ? " on" : "");
+    btn.textContent = task.enabled ? "On" : "Off";
+    btn.addEventListener("click", () => {
+      task.enabled = !task.enabled;
+
+      // If disabling a task, also clear its done flag for cleanliness
+      if (!task.enabled) task.done = false;
+
+      saveState();
+      render();
+      renderSettingsToggles();
+    });
+
+    right.appendChild(btn);
+
+    row.appendChild(left);
+    row.appendChild(right);
+    wrap.appendChild(row);
+  }
+
+  document.getElementById("waterGoalInput").value = state.waterGoalL.toFixed(1);
 }
 
-function setupEasterEgg() {
-  window.addEventListener("keydown", (e) => {
-    const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
-    const expected = KONAMI[konamiPos];
-
-    if (key === expected || e.key === expected) {
-      konamiPos += 1;
-      if (konamiPos === KONAMI.length) {
-        konamiPos = 0;
-        showEgg();
-      }
-    } else {
-      konamiPos = 0;
-    }
-  });
-
-  let clicks = [];
-  els.title.addEventListener("click", () => {
-    const now = Date.now();
-    clicks = clicks.filter(t => now - t < 1200);
-    clicks.push(now);
-    if (clicks.length >= 7) {
-      clicks = [];
-      showEgg();
-    }
-  });
+function maybeNewDayReset() {
+  // Optional behavior: if the date has advanced since last completion, keep current day in-progress.
+  // We only auto-reset tasks when a day is completed (button pressed).
+  // This function exists to expand later if you want stricter daily boundaries.
 }
 
-function init() {
-  const state = loadState();
-  const todayStr = isoDate(new Date());
+function completeDay() {
+  if (!isDayCompleteReady()) return;
 
-  // Ensure we store lastSeenDate (optional — could be used later for reminders)
-  state.lastSeenDate = todayStr;
-  saveState(state);
+  const dayIndex = state.completedDays; // 0-based
+  state.history[dayIndex] = true;
 
-  setupTripDialog(state);
-  setupEasterEgg();
+  // streak logic based on dates
+  const today = todayISO();
+  if (state.lastCompletedDate) {
+    const last = new Date(state.lastCompletedDate + "T00:00:00");
+    const now = new Date(today + "T00:00:00");
+    const diffDays = Math.round((now - last) / (1000 * 60 * 60 * 24));
 
-  // Buttons
-  els.resetTodayBtn.addEventListener("click", () => {
-    resetToday(state, todayStr);
-    renderChecklist(state, todayStr);
-    renderTop(state, todayStr);
-    renderUnlocks(state);
-  });
+    if (diffDays === 1) state.currentStreak += 1;
+    else if (diffDays === 0) {
+      // same day completion shouldn't happen (but just in case)
+      state.currentStreak = Math.max(state.currentStreak, 1);
+    } else state.currentStreak = 1;
+  } else {
+    state.currentStreak = 1;
+  }
 
-  els.completeDayBtn.addEventListener("click", () => {
-    completeToday(state, todayStr);
-    renderTop(state, todayStr);
-    renderUnlocks(state);
-  });
+  state.bestStreak = Math.max(state.bestStreak, state.currentStreak);
+  state.lastCompletedDate = today;
 
-  els.undoCompleteBtn.addEventListener("click", () => {
-    undoComplete(state, todayStr);
-    renderTop(state, todayStr);
-    renderUnlocks(state);
-  });
+  state.completedDays += 1;
 
-  // Initial renders
-  renderChecklist(state, todayStr);
-  renderTop(state, todayStr);
-  renderUnlocks(state);
-  renderCountdown(state);
+  // reset day items for next day
+  for (const t of state.tasks) t.done = false;
+  state.waterL = 0;
 
-  // Update countdown every 30 seconds
-  setInterval(() => renderCountdown(state), 30_000);
+  saveState();
+  render();
 }
 
-init();
+function openSettings() {
+  const modal = document.getElementById("settingsModal");
+  modal.classList.add("show");
+  modal.setAttribute("aria-hidden", "false");
+  renderSettingsToggles();
+}
+
+function closeSettings() {
+  const modal = document.getElementById("settingsModal");
+  modal.classList.remove("show");
+  modal.setAttribute("aria-hidden", "true");
+}
+
+function saveSettingsFromModal() {
+  const input = document.getElementById("waterGoalInput");
+  let goal = Number(input.value);
+  if (!Number.isFinite(goal)) goal = 2.0;
+  goal = clamp(goal, 0.5, 6.0);
+  state.waterGoalL = Math.round(goal * 10) / 10;
+
+  // clamp water to new goal
+  state.waterL = clamp(state.waterL, 0, state.waterGoalL);
+
+  saveState();
+  render();
+  closeSettings();
+}
+
+function resetAll() {
+  const ok = confirm("Reset everything? This will wipe progress.");
+  if (!ok) return;
+  localStorage.removeItem(STORAGE_KEY);
+  state = loadState();
+  render();
+}
+
+function bindEvents() {
+  document.getElementById("completeDayBtn").addEventListener("click", completeDay);
+
+  const slider = document.getElementById("waterSlider");
+  slider.addEventListener("input", (e) => {
+    state.waterL = Number(e.target.value);
+    saveState();
+    renderCompleteButton();
+    renderWater();
+  });
+
+  document.getElementById("settingsBtn").addEventListener("click", openSettings);
+  document.getElementById("closeSettingsBtn").addEventListener("click", closeSettings);
+  document.getElementById("modalBackdrop").addEventListener("click", closeSettings);
+  document.getElementById("saveSettingsBtn").addEventListener("click", saveSettingsFromModal);
+
+  document.getElementById("resetBtn").addEventListener("click", resetAll);
+}
+
+function render() {
+  maybeNewDayReset();
+  renderHeader();
+  renderMessage();
+  renderChecklist();
+  renderWater();
+  renderHistory();
+  renderCompleteButton();
+}
+
+// boot
+let state = loadState();
+bindEvents();
+render();

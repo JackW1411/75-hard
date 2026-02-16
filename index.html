@@ -3,122 +3,133 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>75 Hard Survival OS</title>
-  <link rel="stylesheet" href="./style.css" />
+  <title>75 HARD — Daily Tracker</title>
+  <link rel="stylesheet" href="style.css" />
+  <meta name="theme-color" content="#0b0f14" />
 </head>
 <body>
-  <main class="wrap">
+  <div class="app">
     <header class="top">
-      <div class="titleRow">
-        <h1 id="title">75 Hard Survival OS</h1>
-        <span class="chip" id="todayChip">Today</span>
+      <div class="brand">
+        <div class="logo" aria-hidden="true">75</div>
+        <div>
+          <div class="title">75 HARD Tracker</div>
+          <div class="subtitle" id="subtitle">Day <span id="dayNumber">1</span> of 75</div>
+        </div>
       </div>
 
-      <section class="hero">
-        <div class="card">
-          <div class="cardHeader">
-            <h2>Europe Countdown ✈️</h2>
-            <button class="ghost" id="editTripBtn" type="button">Edit date</button>
-          </div>
-          <div class="countdown" id="countdown">—</div>
-          <div class="sub" id="tripDateLabel">Trip date: —</div>
-        </div>
-
-        <div class="card">
-          <div class="cardHeader">
-            <h2>Progress 📈</h2>
-            <button class="ghost" id="resetTodayBtn" type="button" title="Only resets today's checkboxes">Reset today</button>
-          </div>
-
-          <div class="stats">
-            <div class="stat">
-              <div class="statLabel">Day</div>
-              <div class="statValue"><span id="dayNumber">1</span>/75</div>
-            </div>
-            <div class="stat">
-              <div class="statLabel">Streak</div>
-              <div class="statValue"><span id="streak">0</span> 🔥</div>
-            </div>
-            <div class="stat">
-              <div class="statLabel">Complete</div>
-              <div class="statValue"><span id="percent">0</span>%</div>
-            </div>
-          </div>
-
-          <div class="bar">
-            <div class="barFill" id="barFill" style="width:0%"></div>
-          </div>
-
-          <div class="sub" id="statusLine">Mark today complete to build your streak.</div>
-        </div>
-      </section>
+      <button class="ghost" id="settingsBtn" type="button" aria-label="Open settings">
+        ⚙️
+      </button>
     </header>
 
-    <section class="grid">
-      <div class="card">
-        <div class="cardHeader">
-          <h2>Today’s Checklist ✅</h2>
-          <div class="tiny" id="dateLabel">—</div>
-        </div>
-
-        <div class="checklist" id="checklist"></div>
-
-        <div class="actions">
-          <button id="completeDayBtn" type="button">Complete Day ✅</button>
-          <button class="ghost" id="undoCompleteBtn" type="button">Undo completion</button>
-        </div>
-
-        <p class="hint">
-          Tip: This saves automatically on this device (LocalStorage). No account needed 🔒
-        </p>
+    <section class="card hero">
+      <div class="heroTop">
+        <div class="messageLabel">Today’s message ✨</div>
+        <div class="message" id="dailyMessage">You’ve got this.</div>
       </div>
 
-      <div class="card">
-        <div class="cardHeader">
-          <h2>Unlocked Messages 🎁</h2>
-          <div class="tiny">Unlock every 7-day streak</div>
+      <div class="progressWrap">
+        <div class="progressMeta">
+          <div class="small">Progress</div>
+          <div class="progressText"><span id="completedDays">0</span>/75</div>
+        </div>
+        <div class="progressBar" role="progressbar" aria-valuemin="0" aria-valuemax="75" aria-valuenow="0">
+          <div class="progressFill" id="progressFill"></div>
+        </div>
+      </div>
+
+      <button class="completeBtn" id="completeDayBtn" type="button" disabled>
+        Complete Day <span id="completeDayNumber">1</span>
+      </button>
+      <div class="hint" id="completeHint">Finish all items to unlock 👇</div>
+    </section>
+
+    <section class="card">
+      <div class="sectionTitle">Daily checklist</div>
+
+      <div class="checklist" id="checklist">
+        <!-- items injected by JS -->
+      </div>
+
+      <div class="water cardInner">
+        <div class="waterTop">
+          <div>
+            <div class="waterTitle">Water 💧</div>
+            <div class="waterSub">Goal: <span id="waterGoalLabel">2.0</span>L</div>
+          </div>
+          <div class="waterValue"><span id="waterValueLabel">0.0</span>L</div>
         </div>
 
-        <div class="unlocks" id="unlocks"></div>
+        <input id="waterSlider" class="slider" type="range" min="0" max="2" step="0.1" value="0" />
+        <div class="waterTicks">
+          <span>0</span><span>0.5</span><span>1.0</span><span>1.5</span><span id="waterGoalTick">2.0</span>
+        </div>
       </div>
     </section>
 
+    <section class="card">
+      <div class="sectionTitle">History</div>
+      <div class="historyRow">
+        <div class="pill">
+          🔥 Best streak: <span id="bestStreak">0</span>
+        </div>
+        <div class="pill">
+          ✅ Current streak: <span id="currentStreak">0</span>
+        </div>
+      </div>
+
+      <div class="historyGrid" id="historyGrid" aria-label="Completed days grid">
+        <!-- squares injected by JS -->
+      </div>
+
+      <button class="dangerGhost" id="resetBtn" type="button">Reset tracker</button>
+    </section>
+
     <footer class="footer">
-      <span class="tiny">Built with ❤️ by you</span>
+      <div class="tiny">Made with discipline 🧠</div>
     </footer>
-  </main>
+  </div>
 
-  <!-- Trip date modal -->
-  <dialog id="tripDialog" class="dialog">
-    <form method="dialog" class="dialogInner">
-      <h3>Set Europe date ✈️</h3>
-      <p class="tiny">Pick her first flight / departure date.</p>
-      <label class="field">
-        <span>Date</span>
-        <input id="tripDateInput" type="date" required />
-      </label>
-      <div class="dialogActions">
-        <button class="ghost" value="cancel" type="submit">Cancel</button>
-        <button id="saveTripBtn" value="default" type="submit">Save</button>
+  <!-- Settings modal -->
+  <div class="modal" id="settingsModal" aria-hidden="true">
+    <div class="modalBackdrop" id="modalBackdrop"></div>
+    <div class="modalCard" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <div class="modalHeader">
+        <div>
+          <div class="modalTitle" id="settingsTitle">Settings</div>
+          <div class="modalSub">Tweak goals + tasks</div>
+        </div>
+        <button class="ghost" id="closeSettingsBtn" type="button" aria-label="Close settings">✕</button>
       </div>
-    </form>
-  </dialog>
 
-  <!-- Birthday easter egg modal -->
-  <dialog id="eggDialog" class="dialog">
-    <form method="dialog" class="dialogInner egg">
-      <h3>🎂 Happy Birthday</h3>
-      <p>
-        You’re genuinely built different.<br/>
-        75 Hard + gym + Europe… unreal energy.<br/><br/>
-        I made this so you never forget how far you’ve come 💪✨
-      </p>
-      <div class="dialogActions">
-        <button type="submit">Close</button>
+      <div class="modalBody">
+        <label class="field">
+          <span>Water goal (litres)</span>
+          <input id="waterGoalInput" type="number" min="0.5" max="6" step="0.1" value="2.0" />
+        </label>
+
+        <div class="divider"></div>
+
+        <div class="smallLabel">Checklist items (toggle on/off)</div>
+        <div class="toggles" id="taskToggles">
+          <!-- injected -->
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="smallLabel">Note</div>
+        <div class="note">
+          This version is “75 Hard-inspired” (since your sister’s skipping reading 😄). You can enable/disable tasks here anytime.
+        </div>
       </div>
-    </form>
-  </dialog>
 
-  <script src="./app.js"></script>
+      <div class="modalFooter">
+        <button class="primary" id="saveSettingsBtn" type="button">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
 </body>
 </html>
