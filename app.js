@@ -1,6 +1,6 @@
 /* 75 HARD Tracker - Pink Glassmorphism Edition */
 
-const STORAGE_KEY = "seventyfivehard_v9"; // Version bump again
+const STORAGE_KEY = "seventyfivehard_v11"; // Version bump again
 
 const DEFAULT_TASKS = [
   { id: "runwalk", name: "Outdoor run/walk", desc: "Get outside 🌤️", type: "boolean", enabled: true, done: false },
@@ -27,7 +27,7 @@ const MESSAGES = [
 ];
 
 let state = {
-  version: 7,
+  version: 11,
   completedDays: 0,
   currentStreak: 0,
   bestStreak: 0,
@@ -85,6 +85,36 @@ function isDayCompleteReady() {
   return allTasksDone && waterOk && state.completedDays < 75;
 }
 
+function updateMessage() {
+  const msgEl = document.getElementById("dailyMessage");
+  const currentDay = getDayNumber();
+
+  // STRICT FORCE Logic
+  if (currentDay === 1) {
+    msgEl.innerText = "Happy Birthday Ash!";
+  } else if (currentDay === 75) {
+    msgEl.innerText = "CONGRATULATIONS!!!";
+  } else {
+    // Standard random logic for other days
+    // Use a simple daily check to keep it consistent for the whole day
+    const todayDate = new Date().toDateString();
+
+    if (state.lastCompletedDate !== todayDate) {
+      // Simple hash of date string to pick a stable random message for the day
+      let seed = 0;
+      for (let i = 0; i < todayDate.length; i++) seed += todayDate.charCodeAt(i);
+      const idx = seed % MESSAGES.length;
+      msgEl.innerText = MESSAGES[idx];
+    } else {
+      // Fallback or keep current if valid
+      if (!msgEl.innerText || msgEl.innerText === "Loading motivation...") {
+        const idx = Math.floor(Math.random() * MESSAGES.length);
+        msgEl.innerText = MESSAGES[idx];
+      }
+    }
+  }
+}
+
 // --- RENDER ---
 
 function render() {
@@ -93,8 +123,7 @@ function render() {
   document.getElementById("dayNumber").textContent = String(dayNum);
 
   // Message (seeded by day)
-  const msgIdx = (dayNum + 42) % MESSAGES.length;
-  document.getElementById("dailyMessage").textContent = MESSAGES[msgIdx];
+  updateMessage();
 
   // Checklist
   renderChecklist();

@@ -347,6 +347,22 @@ body {
 
 .slider.compact {
   height: 6px;
+  touch-action: none;
+  /* Prevents scrolling while dragging */
+}
+
+.slider.compact::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 24px;
+  /* Larger hit area */
+  height: 24px;
+  border-radius: 50%;
+  background: white;
+  cursor: pointer;
+  margin-top: -9px;
+  /* Centers thumb on 6px track */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
 .slider.compact::-webkit-slider-thumb {
