@@ -189,6 +189,8 @@ function renderWater() {
   document.getElementById("waterGoalLabel").textContent = state.waterGoalL.toFixed(1);
   document.getElementById("waterGoalTick").textContent = state.waterGoalL.toFixed(1);
   document.getElementById("waterValueLabel").textContent = Number(slider.value).toFixed(1);
+
+  paintWaterSlider();
 }
 
 function renderHeader() {
@@ -196,14 +198,8 @@ function renderHeader() {
   document.getElementById("dayNumber").textContent = String(dayNum);
   document.getElementById("completeDayNumber").textContent = String(dayNum);
 
-  document.getElementById("completedDays").textContent = String(state.completedDays);
-
-  const fill = document.getElementById("progressFill");
-  const pct = clamp((state.completedDays / 75) * 100, 0, 100);
-  fill.style.width = `${pct}%`;
-
-  const pb = document.querySelector(".progressBar");
-  pb.setAttribute("aria-valuenow", String(state.completedDays));
+  const cd = document.getElementById("completedDays");
+  if (cd) cd.textContent = String(state.completedDays);
 
   const hue = progressHue(state.completedDays);
   document.documentElement.style.setProperty("--accentHue", String(hue));
@@ -218,31 +214,33 @@ function renderMessage() {
 }
 
 function renderCompleteButton() {
-  const btn = document.getElementById("completeDayBtn");
-  const hint = document.getElementById("completeHint");
-
-  const ready = isDayCompleteReady();
-  btn.disabled = !ready;
-
-  if (state.completedDays >= 75) {
-    btn.disabled = true;
-    btn.textContent = "Finished — 75/75 🏁";
-    hint.textContent = "You actually did it. Respect.";
-    return;
+    const btn = document.getElementById("completeDayBtn");
+    const hint = document.getElementById("completeHint");
+  
+    const ready = isDayCompleteReady();
+    btn.disabled = !ready;
+  
+    const dayNum = clamp(state.completedDays + 1, 1, 75);
+    const dayEl1 = document.getElementById("completeDayNumber");
+    const dayEl2 = document.getElementById("dayNumber");
+    if (dayEl1) dayEl1.textContent = String(dayNum);
+    if (dayEl2) dayEl2.textContent = String(dayNum);
+  
+    if (state.completedDays >= 75) {
+      btn.disabled = true;
+      hint.textContent = "You actually did it. Respect. 🏁";
+      return;
+    }
+  
+    if (ready) {
+      hint.textContent = "Unlocked — send it ✅";
+    } else {
+      const missing = [];
+      if (!enabledTasks().every(t => t.done)) missing.push("checklist");
+      if (state.waterL < state.waterGoalL - 1e-9) missing.push("water");
+      hint.textContent = `Finish ${missing.join(" + ")} to unlock 👇`;
+    }
   }
-
-  btn.innerHTML = `Complete Day <span id="completeDayNumber">${clamp(state.completedDays + 1, 1, 75)}</span>`;
-
-  if (ready) {
-    hint.textContent = "Unlocked — send it ✅";
-  } else {
-    // show what's missing
-    const missing = [];
-    if (!enabledTasks().every(t => t.done)) missing.push("checklist");
-    if (state.waterL < state.waterGoalL - 1e-9) missing.push("water");
-    hint.textContent = `Finish ${missing.join(" + ")} to unlock 👇`;
-  }
-}
 
 function renderSettingsToggles() {
   const wrap = document.getElementById("taskToggles");
@@ -377,7 +375,7 @@ function bindEvents() {
     state.waterL = Number(e.target.value);
     saveState();
     renderCompleteButton();
-    renderWater();
+    renderWater();        // now calls paintWaterSlider()
   });
 
   document.getElementById("settingsBtn").addEventListener("click", openSettings);
@@ -434,13 +432,16 @@ function setRingProgress(completedDays) {
     const slider = document.getElementById("waterSlider");
     if (!slider) return;
   
-    const goal = Math.max(state.waterGoalL, 0.1);
-    const ratio = clamp(state.waterL / goal, 0, 1);
+    const goal = Math.max(Number(state.waterGoalL) || 2.0, 0.1);
+    const val = Number(slider.value); // <- use live slider value
+    const ratio = clamp(val / goal, 0, 1);
   
     const fill = waterFillColor(ratio);
     const track = "rgba(255,255,255,0.12)";
+    const pct = Math.round(ratio * 1000) / 10;
   
-    // Fill left side using linear-gradient with a hard stop
-    const pct = Math.round(ratio * 1000) / 10; // 0.1% precision
     slider.style.background = `linear-gradient(90deg, ${fill} ${pct}%, ${track} ${pct}%)`;
+  
+    // expose the water colour to CSS (thumb + optional other UI)
+    document.documentElement.style.setProperty("--waterAccent", fill);
   }
