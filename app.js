@@ -304,7 +304,10 @@ function completeDay() {
   state.lastCompletedDate = today;
 
   // Reset daily
-  state.tasks.forEach(t => t.done = false);
+  state.tasks.forEach(t => {
+    t.done = false;
+    if (t.type === "range") t.value = 0;
+  });
   state.waterL = 0;
 
   saveState();
