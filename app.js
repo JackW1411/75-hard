@@ -1,13 +1,12 @@
 /* 75 HARD Tracker - Pink Glassmorphism Edition */
 
-const STORAGE_KEY = "seventyfivehard_v3"; // Version bump
+const STORAGE_KEY = "seventyfivehard_v4"; // Version bump
 
 const DEFAULT_TASKS = [
   { id: "runwalk", name: "Outdoor run/walk", desc: "Get outside 🌤️", type: "boolean", enabled: true, done: false },
   { id: "gym", name: "Gym / workout", desc: "Train hard 🏋️", type: "boolean", enabled: true, done: false },
   { id: "nutrition", name: "Nutrition on plan", desc: "Clean eating 🍽️", type: "boolean", enabled: true, done: false },
   { id: "no_alc", name: "No alcohol", desc: "Zero tolerance 🥤", type: "boolean", enabled: true, done: false },
-  { id: "photo", name: "Progress photo", desc: "Daily snap 📸", type: "boolean", enabled: true, done: false },
   { id: "reading", name: "Reading", desc: "10 pages 📚", type: "range", target: 10, unit: "pages", value: 0, enabled: true, done: false }
 ];
 
@@ -25,7 +24,7 @@ const MESSAGES = [
 ];
 
 let state = {
-  version: 3,
+  version: 4,
   completedDays: 0,
   currentStreak: 0,
   bestStreak: 0,
