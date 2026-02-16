@@ -39,10 +39,22 @@
         </div>
       </div>
 
-      <button class="completeBtn" id="completeDayBtn" type="button" disabled>
-        Complete Day <span id="completeDayNumber">1</span>
-      </button>
-      <div class="hint" id="completeHint">Finish all items to unlock 👇</div>
+      <div class="completeRingWrap">
+        <div class="completeRing" id="completeRing" aria-label="Overall progress ring">
+          <svg class="ringSvg" viewBox="0 0 120 120" aria-hidden="true">
+            <circle class="ringTrack" cx="60" cy="60" r="52"></circle>
+            <circle class="ringProgress" id="ringProgress" cx="60" cy="60" r="52"></circle>
+          </svg>
+      
+          <button class="completeCircleBtn" id="completeDayBtn" type="button" disabled>
+            <div class="circleTop">Complete</div>
+            <div class="circleMid">Day <span id="completeDayNumber">1</span></div>
+            <div class="circleSub"><span id="circlePct">0</span>%</div>
+          </button>
+        </div>
+      
+        <div class="hint" id="completeHint">Finish all items to unlock 👇</div>
+      </div>
     </section>
 
     <section class="card">

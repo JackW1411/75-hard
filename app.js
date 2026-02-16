@@ -207,6 +207,9 @@ function renderHeader() {
 
   const hue = progressHue(state.completedDays);
   document.documentElement.style.setProperty("--accentHue", String(hue));
+
+  setRingProgress(state.completedDays);
+  paintWaterSlider();
 }
 
 function renderMessage() {
@@ -399,3 +402,45 @@ function render() {
 let state = loadState();
 bindEvents();
 render();
+
+function setRingProgress(completedDays) {
+    const circle = document.getElementById("ringProgress");
+    if (!circle) return;
+  
+    const r = 52;
+    const C = 2 * Math.PI * r;
+  
+    const t = clamp(completedDays / 75, 0, 1);
+    const filled = C * t;
+    const empty = C - filled;
+  
+    circle.style.strokeDasharray = `${filled} ${empty}`;
+  
+    const pct = Math.round(t * 100);
+    const pctEl = document.getElementById("circlePct");
+    if (pctEl) pctEl.textContent = String(pct);
+  }
+
+  function waterFillColor(ratio) {
+    // ratio 0..1 : grey -> light blue
+    // Start: grey-ish (210°, low sat), End: light blue (200°, higher sat)
+    const h = 210 - 10 * ratio;         // 210 -> 200
+    const s = 10 + 55 * ratio;          // 10% -> 65%
+    const l = 55 + 5 * ratio;           // 55% -> 60%
+    return `hsl(${h} ${s}% ${l}%)`;
+  }
+  
+  function paintWaterSlider() {
+    const slider = document.getElementById("waterSlider");
+    if (!slider) return;
+  
+    const goal = Math.max(state.waterGoalL, 0.1);
+    const ratio = clamp(state.waterL / goal, 0, 1);
+  
+    const fill = waterFillColor(ratio);
+    const track = "rgba(255,255,255,0.12)";
+  
+    // Fill left side using linear-gradient with a hard stop
+    const pct = Math.round(ratio * 1000) / 10; // 0.1% precision
+    slider.style.background = `linear-gradient(90deg, ${fill} ${pct}%, ${track} ${pct}%)`;
+  }
